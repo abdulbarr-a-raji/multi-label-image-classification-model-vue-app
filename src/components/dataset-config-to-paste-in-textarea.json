@@ -1,0 +1,62 @@
+[
+  {
+    "file_name": "apple-banana-grape-salad.jpg",
+    "tensor": null,
+    "labels": [0, 0, 0]
+  },
+  {
+    "file_name": "kiwi-salad-01.jpeg",
+    "tensor": null,
+    "labels": [0, 0, 1]
+  },
+  {
+    "file_name": "kiwi-salad-02.jpg",
+    "tensor": null,
+    "labels": [0, 0, 1]
+  },
+  {
+    "file_name": "orange-kiwi-salad-01.jpg",
+    "tensor": null,
+    "labels": [0, 1, 1]
+  },
+  {
+    "file_name": "orange-kiwi-salad-02.jpg",
+    "tensor": null,
+    "labels": [0, 1, 1]
+  },
+  {
+    "file_name": "orange-salad.jpg",
+    "tensor": null,
+    "labels": [0, 1, 0]
+  },
+  {
+    "file_name": "strawberry-kiwi-salad-01.webp",
+    "tensor": null,
+    "labels": [1, 0, 1]
+  },
+  {
+    "file_name": "strawberry-kiwi-salad-02.webp",
+    "tensor": null,
+    "labels": [1, 0, 1]
+  },
+  {
+    "file_name": "strawberry-orange-kiwi-salad.jpg",
+    "tensor": null,
+    "labels": [1, 1, 1]
+  },
+  {
+    "file_name": "strawberry-orange-salad-01.webp",
+    "tensor": null,
+    "labels": [1, 1, 0]
+  },
+  {
+    "file_name": "strawberry-orange-salad-02.jpg",
+    "tensor": null,
+    "labels": [1, 1, 0]
+  },
+  {
+    "file_name": "strawberry-salad.jpg",
+    "tensor": null,
+    "labels": [1, 0, 0]
+  }
+]
