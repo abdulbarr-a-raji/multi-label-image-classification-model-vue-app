@@ -11,10 +11,12 @@
       :h="inputSize.h"
     />
     <Training 
-      v-else
+      v-else 
+      ref="trainingComponent"
       header="Model Training" 
       :w="inputSize.w" 
       :h="inputSize.h"
+      @training-is-complete="doneTraining = $event"
     />
 
   </div>
@@ -22,7 +24,7 @@
 
 <script>
 import ModelTraining from './components/ModelTrainingComponent.vue'
-import Predictor from './components/Predictor.vue'
+import Predictor from './components/PredictorComponent.vue'
 
 export default {
   name: 'App',

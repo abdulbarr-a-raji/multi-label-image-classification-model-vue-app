@@ -5,7 +5,6 @@
     <textarea name="" id="json-data" rows="10" cols="50" v-model="jsonInput"></textarea>
     <br>
     <input type="file" id="imagedataUpload" multiple accept="image/*" />
-    <!-- <button id="load-images" v-on:click="runMain">Load Image Data & Train Model</button> -->
     <br>
     <br>
     <button id="train-with-extractor" v-on:click="fitClassifcationHead">
@@ -39,7 +38,7 @@ export default {
     "labels": [0, 1]
   }
 ]`,
-      labelNames: ["strawberry", "orange", "kiwi"]
+      labelNames: ["strawberry", "orange", "kiwi"],
 
       // FLAGS & COUNTERS
 
@@ -124,7 +123,7 @@ export default {
           tns.expandDims(0),
           croppedSize,
           [0],
-          [224, 224]
+          [this.w, this.h]
         ).toFloat()
           .div(255.0);
         
@@ -154,7 +153,7 @@ export default {
 
         // Warming up the feature extractor...
         this.tf.tidy(() => {
-          const warmupInput = this.tf.zeros([1, 224, 224, 3]);
+          const warmupInput = this.tf.zeros([1, this.w, this.h, 3]);
           const answer = this.featureExtractor.predict(warmupInput);
           answer.print();
         });
@@ -234,8 +233,10 @@ export default {
 
       console.log("Training results:", results.history);
 
+      this.$emit('training-is-complete', true);
+
       // save the model
-      // await this.fully_connected_head.save("downloads://pretrained-head-v1");
+      await this.fully_connected_head.save("downloads://pretrained-head");
     }
   }
 }
