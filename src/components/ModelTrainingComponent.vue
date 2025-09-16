@@ -282,7 +282,7 @@ textarea {
 button {
   padding: 8px;
 
-  background-color: rgb(44, 62, 80);
+  background-color: #CC2936;
   border: none;
   border-radius: 4px;
 

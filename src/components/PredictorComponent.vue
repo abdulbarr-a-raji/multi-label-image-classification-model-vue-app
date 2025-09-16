@@ -2,7 +2,8 @@
   <div class="training">
     <h2>{{ header }}</h2>
     <button id="inference-button" v-on:click="run">Run Predictor</button>
-
+    <br>
+    <br>
     <div class="image-container">
         <div id="example1" :title="imageTooltips[0]" class="example-pics"></div>
         <div id="example2" :title="imageTooltips[1]" class="example-pics"></div>
@@ -183,7 +184,7 @@ a {
 button {
   padding: 8px;
 
-  background-color: rgb(44, 62, 80);
+  background-color: #CC2936;
   border: none;
   border-radius: 4px;
 
@@ -201,19 +202,30 @@ button:hover {
 }
 
 div.image-container {
-  width: 40%;
-  height: auto;
-  padding: 50px;
-  background-color: #e9e9e9;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-content: stretch;
+
+  width: 97vw;
+  padding: 1vw;
+  /* background-color: #08415C; */
   background-size: 100% 100%;
 }
 
 div.example-pics {
-  width: 300px;
-  height: 300px;
-  margin: 50px auto;
+  width: 224px;
+  height: 224px;
+
+  margin-left: 10px;
+  margin-top: 10px;
+
   background-repeat: no-repeat;
   background-size: 100% 100%;
+  border-width: 5px;
+  border-style: groove;
+  border-color: #e9e9e9;
+
 }
 #example1 {
   background-image: url('/assets/fruit-salad-01.jpg');
