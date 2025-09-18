@@ -1,15 +1,39 @@
 <template>
   <div class="training">
     <h2>{{ header }}</h2>
-    <label for="json-data">enter your dataset in JSON format here...</label>
-    <textarea name="" id="json-data" rows="10" cols="50" v-model="jsonInput"></textarea>
-    <br>
-    <input type="file" id="imagedataUpload" multiple accept="image/*" />
-    <br>
-    <br>
-    <button id="train-with-extractor" v-on:click="fitClassifcationHead">
-      Load Image Data & Train Classification Head
-    </button>
+    <nav>
+      <button class="persian-green tab" @click="current_tab = 1">View the Dataset</button>
+      <button class="saffron tab" @click="current_tab = 2">Train the Model</button>
+      <button class="sandy-brown tab" @click="current_tab = 3">Test the Model</button>
+      <button class="sandy-brown tab" @click="exportModel">Save your Model</button>
+    </nav>
+    <main>
+      <section ref="dataset" class="plain-container" v-show="current_tab == 1">
+        <div v-for="(img, i) in training_dataset" :key="i" ref="image-card" class="image-card">
+          <img :src="`/assets/training-images/${img.filename}`"/>
+          <p>{{ img.labels.map((label, i) => label ? objects[i] : "").filter((s) => s !== "").join(" - ") || "none" }}</p>
+        </div>
+      </section>
+      <section class="plain-container" v-show="current_tab == 2">
+        <progress :value="trainingProgress" max="100"></progress>
+        <p>Epoch {{ currentEpoch }} <br> Loss: {{ loss }} <br> Acc: {{ acc }}</p>
+        <button id="train-with-extractor" v-on:click="fitClassifcationHead">
+          Train the Classification Head
+        </button>
+      </section>
+      <section class="plain-container" v-show="current_tab == 3">
+        <label for="test-data-upload">Upload an image of a fruit salad...</label>
+        <input type="file" ref="test_images" id="test-data-upload" accept="image/*"/>
+        <button id="test-model" v-on:click="testModel">Load Image Data & Test Model</button>
+        <div class="image-card">
+          <img v-show="test_image" ref="uploaded_test_image" :src="test_image" alt="Have you uploaded a test image?">
+          <p>{{ test_results }}</p>
+        </div>
+      </section>
+      <section class="plain-container" v-show="current_tab == 4">
+        welcome exportModel
+      </section>
+    </main>
     <br>
     <small>uses tf.js for ML</small>
     <div id="micro-out-div"></div>
@@ -19,30 +43,50 @@
 <script>
 export default {
   name: 'ModelTraining',
+  emits: ["done-exporting-model"],
   props: {
     header: String,
-    w: {type: Number, required: true},
-    h: {type: Number, required: true}
-  },
-  mounted() {
-    this.tf = window.tf;
+    objects: {
+      required: true,
+      type: Array,
+      default: () => ([])
+    },
+    w: {
+      required: true,
+      type: Number,
+    },
+    h: {
+      required: true,
+      type: Number,
+      default: () => ([])
+    }
   },
   data() {
     return {
       tf: null,
-      featureExtractor: null,
+      feature_extractor: null,
       fully_connected_head: null,
-      jsonInput: `[
-  {
-    "file_name": "",
-    "labels": [0, 1]
-  }
-]`,
-      labelNames: ["strawberry", "orange", "kiwi"],
+      training_dataset: [],
+      test_image: undefined,
+      test_results: "there are no results so far...",
+
+      trainingProgress: 0,
+      currentEpoch: 0,
+      loss: null,
+      acc: null,
 
       // FLAGS & COUNTERS
-
+      current_tab: 1
     }
+  },
+  async mounted() {
+    this.tf = window.tf;
+    this.checkForTensorflow();
+
+    await this.renderDatasetCards();
+    await this.$nextTick();
+    if(!this.fully_connected_head || !this.feature_extractor) await this.setupModels();
+    await this.populateTrainingDataset();
   },
   methods: {
     checkForTensorflow() {
@@ -52,50 +96,50 @@ export default {
         console.error("tf.js is NOT in this scope D':");
       }
     },
-    async loadTrainingData() {
-      const inputElement = document.getElementById('imagedataUpload');
-      const uploaded = Array.from(inputElement.files);
-      const training_dataset = JSON.parse(this.jsonInput);
+    async renderDatasetCards() {
+      const res = await fetch("/assets/training-images/dataset-index.json");
+      const image_filenames = await res.json();
+      
+      this.training_dataset = image_filenames.map((name) => {
+        return {
+          filename: name,
+          tensor: undefined,
+          labels: this.objects.map((label) => name.includes(label) ? 1 : 0)
+        }
+      });
+    },
+    async populateTrainingDataset() {
+      console.log("training data before:-\n", this.training_dataset);
 
       console.log("File names:-\n");
-      uploaded.forEach((file) => console.log(file.name));
+      console.log(this.training_dataset.map((img) => `${img.filename}`).join(", \n"));
 
-      console.log("training data before:-\n", training_dataset);
+      const image_cards = this.$refs["image-card"];
+      console.log("cards:", image_cards);
+      for (let [i, el] of image_cards.entries()) {
+        // console.log(i, this.$refs.dataset.children[i]);
+        console.log(el.tagName);
 
-      for (const item of training_dataset) {
-        const file = uploaded.find((value) => value.name == item.file_name);
-        const img = await this.readFileAsImage(file);
-        item.tensor = this.preprocessImageData(img);
+        // assigning TENSOR
+        const loadImage = (img) => new Promise((resolve, reject) => {
+          if (img.complete && img.naturalWidth > 0) {
+            resolve(img);
+          } else {
+            img.onload = () => resolve(img);
+            img.onerror = (e) => reject(e);
+          }
+        });
+
+        try {
+          await loadImage(el.firstElementChild);
+          this.training_dataset[i].tensor = this.preprocessImageData(el.firstElementChild);
+        } catch (err) {
+          console.error(`Error loading image at index ${i}:`, err);
+        }
+        this.training_dataset[i].tensor = this.preprocessImageData(el.firstElementChild);
       }
 
-      console.log("training data after:-\n", training_dataset);
-
-      /* must try...catch for this error eventually:
-        Uncaught (in promise) Error: 
-        Pass at least one tensor to tf.stack
-        at loadTrainingData (data.js)
-
-        | it occurs when no images are uploaded, 
-        | but button has been pressed
-      */
-
-      return training_dataset;
-    },
-    readFileAsImage(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          const img = new Image();
-          img.src = reader.result;
-
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-        };
-
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      console.log("training data after:-\n", this.training_dataset);
     },
     preprocessImageData(img) {
       return this.tf.tidy(() => {
@@ -130,11 +174,11 @@ export default {
         // disposal/s
         tns.dispose();
 
-        return this.featureExtractor.predict(croppedImgTns).squeeze();
+        return this.feature_extractor.predict(croppedImgTns).squeeze();
       });
     },
     async setupModels() {
-      const NUM_CLASSES = this.labelNames.length;
+      const NUM_CLASSES = this.objects.length;
 
       try {
         // loading the feature extractor model...
@@ -146,7 +190,7 @@ export default {
         const beforeFinalLayer = loadedModel.getLayer(
           "global_average_pooling2d_1"
         );
-        this.featureExtractor = this.tf.model({
+        this.feature_extractor = this.tf.model({
           inputs: loadedModel.inputs,
           outputs: beforeFinalLayer.output,
         });
@@ -154,7 +198,7 @@ export default {
         // Warming up the feature extractor...
         this.tf.tidy(() => {
           const warmupInput = this.tf.zeros([1, this.w, this.h, 3]);
-          const answer = this.featureExtractor.predict(warmupInput);
+          const answer = this.feature_extractor.predict(warmupInput);
           answer.print();
         });
 
@@ -168,7 +212,7 @@ export default {
       this.fully_connected_head = this.tf.sequential();
       this.fully_connected_head.add(
         this.tf.layers.dense({
-          inputShape: [this.featureExtractor.outputs[0].shape[1]],
+          inputShape: [this.feature_extractor.outputs[0].shape[1]],
           units: 64,
           activation: "relu",
         })
@@ -188,6 +232,7 @@ export default {
 
       // Compile classification head
       const model_optimizer = this.tf.train.adam();
+      // const model_optimizer = this.tf.train.rmsprop(0.001);
       this.fully_connected_head.compile({
         optimizer: model_optimizer,
         loss: "binaryCrossentropy",
@@ -198,29 +243,37 @@ export default {
       this.fully_connected_head.summary();
     },
     async fitClassifcationHead() {
-      if(!this.fully_connected_head || !this.featureExtractor) await this.setupModels();
-
-      // preprocess image data and load as tensors
-      const training_data = await this.loadTrainingData();
-
-      const xs = this.tf.stack(training_data.map((item) => item.tensor)); // tensor shape: [batch, height, width, channels]
-      const ys = this.tf.stack(training_data.map((item) => item.labels)); // tensor shape: [batch, labels]
+      const xs = this.tf.stack(this.training_dataset.map((item) => item.tensor)); // tensor shape: [batch, height, width, channels]
+      const ys = this.tf.stack(this.training_dataset.map((item) => item.labels)); // tensor shape: [batch, labels]
 
       console.log(xs.shape);
       console.log(ys.shape);
 
-        const ls = training_data.map((item) => item.labels);
+      this.tf.util.shuffleCombo(xs, ys);
 
-      document.getElementById('micro-out-div').innerText = ls.map((item) => item.map((label, i) => label == 1 ? this.labelNames[i] : "_")).join("\n");
+      // const ls = this.training_dataset.map((item) => item.labels);
+      // 
+      // document.getElementById('micro-out-div').innerText = ls.map((item) => item.map((label, i) => label == 1 ? this.objects[i] : "_")).join("\n");
 
-      const BATCH_SIZE = 3;
-      const NUM_EPOCHS = 10;
+      const BATCH_SIZE = 8;
+      const NUM_EPOCHS = 7;
       const start = performance.now();
 
       const results = await this.fully_connected_head.fit(xs, ys, {
         shuffle: true,
         batchSize: BATCH_SIZE,
-        epochs: NUM_EPOCHS
+        epochs: NUM_EPOCHS,
+        callbacks: {
+          onEpochEnd: async (epoch, logs) => {
+            // update progress bar
+            const percent = ((epoch + 1) / NUM_EPOCHS) * 100;
+            this.trainingProgress = percent;
+
+            // optional: show loss/accuracy live
+            this.loss = logs.loss.toFixed(3);
+            this.acc = logs.binaryAccuracy.toFixed(3);
+          }
+        }
       });
 
       const end = performance.now();
@@ -232,57 +285,148 @@ export default {
       ys.dispose();
 
       console.log("Training results:", results.history);
+    },
+    async testModel() {
+      const uploaded = Array.from(this.$refs.test_images.files);
 
-      this.$emit('training-is-complete', true);
+      const img_element = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          this.test_image = reader.result;
 
-      // save the model
-      await this.fully_connected_head.save("downloads://pretrained-head");
+          this.$refs.uploaded_test_image.onload = () => resolve(this.$refs.uploaded_test_image);
+          this.$refs.uploaded_test_image.onerror = reject;
+        };
+
+        reader.onerror = reject;
+        reader.readAsDataURL(uploaded[0]);
+      });
+
+      const test_tensor = this.preprocessImageData(img_element);
+      console.log("image tensor -", test_tensor);
+      
+      const predictions_list = await this.fully_connected_head.predict(test_tensor.expandDims(0)).array();
+      console.log(predictions_list);
+      console.log(this.objects);
+
+      this.test_results = predictions_list[0].map((pred, i) => (pred >= 0.5) ? this.objects[i] : "").filter((s) => s !== "").join(", ") || "none";
+      // this.test_results = predictions_list.map((_, i) => this.objects[i]);
+    },
+    async exportModel() {
+      this.current_tab = 4;
+      // save the model to browser's indexed database for inference
+      await this.fully_connected_head.save("indexeddb://pretrained-head");
+
+      this.$emit('done-exporting-model', true);
     }
   }
 }
 </script>
 
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
+/* 
+old color palette : https://coolors.co/visualizer/331832-cc2936-1b5299-aaa694-cccccc
 
-label:has(+ textarea),
-textarea {
-  display: block;
+new color palette : https://coolors.co/visualizer/264653-2a9d8f-e9c46a-f4a261-e76f51
+*/
+.persian-green {
+  background-color: #2A9D8F;
 
-  font-size: 0.8rem;
-  letter-spacing: 1px;
+  color: black;
 }
+.saffron {
+  background-color: #e9c46a;
 
-label:has(+ textarea) {
-  margin-bottom: 10px;
+  color: black;
+}
+.sandy-brown {
+  background-color: #f4a261;
+
+  color: black;
 }
 
-textarea {
-  padding: 10px;
-  margin: auto;
+nav {
+  display: flex;
+  justify-content: center;
+}
 
-  max-width: 100%;
+.tab {
+  /* border-radius: 30% 30% 0% 0%; */
+  border-radius: 15px 15px 0 0;
+  padding: 10px 10px 5px;
+  margin-right: 10px;
 
-  line-height: 1.5;
+  /* width: 50px; */
+  /* aspect-ratio: 1 / 1; */
+
+  text-align: center;
+  font-family: "Zain", sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+
+  /* background-clip: padding-box; */
+}
+
+.plain-container {
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(204, 204, 204);
   border-radius: 5px;
-  border: 1px solid #cccccc;
+  margin: auto;
+  padding-bottom: 20px;
+
+  width: 90vw;
+
+  background-color: white;
   box-shadow: 1px 1px 1px #999999;
+}
+
+.image-card {
+  display: inline-block;
+
+  border-width: 1px;
+  border-style: solid;
+  border-color: #999999;
+  border-radius: 10px;
+  margin: 20px 10px 0;
+  padding: 10px;
+
+  background-color: #cccccc66;
+  box-shadow: 3px 3px 3px #666666;
+}
+
+.image-card img {
+  width: 300px;
+  height: 300px;
+
+  margin: auto;
+  
+  border-width: 1px;
+  border-style: solid;
+  border-color: #999999;
+}
+
+.image-card p {
+  border-radius: 999px;
+  margin: auto;
+  padding: 0 12px;
+
+  width: fit-content;
+  
+  background-color: #cccccc;
+
+  color: #000;
+  text-align: center;
+  font-family: "Zain", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 button {
   padding: 8px;
 
-  background-color: #CC2936;
+  background-color: #264653;
   border: none;
   border-radius: 4px;
 

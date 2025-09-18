@@ -1,11 +1,8 @@
 <template>
   <div id="app">
-
-    <input type="checkbox" id="predictorCheckbox" v-model="doneTraining">
-    <label for="predictorCheckbox">Already saved a pre-trained model</label>
     <h1>Multi-label Image Classfication Demo</h1>
     <Predictor 
-      v-if="doneTraining" 
+      v-if="use_pretrained_classifier_head" 
       header="Model Inference" 
       :w="inputSize.w" 
       :h="inputSize.h"
@@ -14,9 +11,10 @@
       v-else 
       ref="trainingComponent"
       header="Model Training" 
+      :objects="['strawberry', 'orange', 'kiwi']"
       :w="inputSize.w" 
       :h="inputSize.h"
-      @training-is-complete="doneTraining = $event"
+      @done-exporting-model="use_pretrained_classifier_head = $event"
     />
 
   </div>
@@ -33,7 +31,7 @@ export default {
       inputSize: {w:224, h:224}, // previously {w:512, h:512}
 
       // FLAGS & COUNTERS
-      doneTraining: false
+      use_pretrained_classifier_head: false
     }
   },
   components: {
@@ -44,6 +42,8 @@ export default {
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Zain:ital,wght@0,200;0,300;0,400;0,700;0,800;0,900;1,300;1,400&display=swap');
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

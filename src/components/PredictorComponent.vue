@@ -97,7 +97,8 @@ export default {
       return feature_extractor.predict(suitable_tensor).squeeze();
     },
     async loadModel() {
-      const model = await this.tf.loadLayersModel('/assets/pretrained head/pretrained-head.json'); // new ERROR with loading caused by movement of files
+      // const model = await this.tf.loadLayersModel('/assets/pretrained head/pretrained-head.json'); // new ERROR with loading caused by movement of files
+      const model = await this.tf.loadLayersModel('indexeddb://pretrained-head');
 
       console.log("Model loaded successfully, YAY!")
       model.summary();
@@ -228,15 +229,15 @@ div.example-pics {
 
 }
 #example1 {
-  background-image: url('/assets/fruit-salad-01.jpg');
+  background-image: url('/assets/test-images/fruit-salad-01.jpg');
 }
 #example2 {
-  background-image: url('/assets/fruit-salad-02.jpg');
+  background-image: url('/assets/test-images/fruit-salad-02.jpg');
 }
 #example3 {
-  background-image: url('/assets/fruit-salad-03.jpg');
+  background-image: url('/assets/test-images/fruit-salad-03.jpg');
 }
 #example4 {
-  background-image: url('/assets/fruit-salad-04.webp');
+  background-image: url('/assets/test-images/sliced-oranges.webp');
 }
 </style>
