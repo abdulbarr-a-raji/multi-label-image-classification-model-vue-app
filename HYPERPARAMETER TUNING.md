@@ -41,7 +41,7 @@ testing correct answers: [strawberry, kiwi] [orange, kiwi] [strawberry]
       testing: [strawberry] [strawberry, orange, kiwi] [strawberry]
       score: 7/9
 
-9.    opt=rmsprop, lr=0.01, b=8, e=7, shuffle=on
+9.    opt=adam, lr=0.01, b=8, e=7, shuffle=on
       results: loss=0.235, bin_acc=1.000
       testing: [strawberry] [strawberry, orange, kiwi] [strawberry]
       score: 7/9
